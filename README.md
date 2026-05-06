@@ -14,6 +14,7 @@ Hosted via GitHub Pages. Open `index.html` directly for solo offline use, or vis
 ├── config.js                           # Supabase URL + anon key (commit this)
 ├── supabase-setup.sql                  # canonical fresh-install schema
 ├── migration-001-edits-and-runoffs.sql # upgrade for an existing v1 project
+├── migration-002-slack-webhook.sql     # adds per-client Slack webhook column
 ├── data/
 │   └── roster.json                     # legacy seed file — no longer the source of truth
 └── README.md
@@ -39,6 +40,21 @@ Each row on the client roster panel shows:
 - **Candidate** — the name (with `auto`/`manual` source tag).
 - **Race** — `{State} · {Office} [· {District}]`. Editable via the Edit button.
 - **Custom Notes** — per-client annotation. Editable via the Edit button; useful for buy details, optimization decisions, internal context. (The full NBC race notes still appear in the bottom Calendar table.)
+
+## Slack reminders (per-client)
+
+When a client crosses into the INCREASE IMPRESSIONS window (≤11 days out), a `📤 Slack` button appears on that row. Clicking it POSTs a single-client reminder to a Slack channel — formatted with the candidate name, race, election date, days-out countdown, and any Custom Notes.
+
+Each client has its own webhook URL (typically tied to a per-client Slack channel). To wire one up:
+
+1. In Slack, go to https://api.slack.com/apps → **Create New App** → **From scratch** → name and pick your workspace.
+2. In the new app, **Incoming Webhooks** → toggle **On** → **Add New Webhook to Workspace** → pick the channel → copy the URL it generates.
+3. On the dashboard, click **Edit** on the client (or paste the URL when first manually assigning the candidate). Paste the webhook URL into the "Slack webhook URL" field. Save.
+4. Once a client crosses ≤11 days out, the row's `📤 Slack` button is armed. Click → reminder fires.
+
+Rows in the ramp window without a webhook show a muted **Set Slack URL** button — clicking it opens the Edit modal with the Slack field focused.
+
+The webhook URL is stored on the client's roster row in Supabase (column `slack_webhook_url`). It is not committed to Git, but it is readable by anyone who can hit the live page (same exposure model as the rest of the roster). Slack incoming webhook URLs are scoped to one channel and trivial to rotate from the Slack admin if leaked.
 
 ## Runoffs
 
@@ -69,7 +85,10 @@ The status line under the action buttons shows connection state:
 
 ### Upgrading an existing project
 
-If your Supabase project was set up with the original v1 schema (no `custom_notes` column, no `events` table), run the contents of `migration-001-edits-and-runoffs.sql` in the SQL Editor. The migration is idempotent — safe to run more than once.
+Run the contents of any `migration-*.sql` files you haven't applied yet, in order, in the Supabase SQL Editor. All migrations are idempotent — safe to run more than once.
+
+- `migration-001-edits-and-runoffs.sql` — adds Custom Notes, the events table, and the roster UPDATE policy
+- `migration-002-slack-webhook.sql` — adds the per-client Slack webhook column
 
 ### 2. Configure the page
 

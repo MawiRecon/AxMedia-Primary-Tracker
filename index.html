@@ -253,6 +253,17 @@
     padding: 4px 8px;
     font-size: 12px;
   }
+  button.slack-btn { margin-right: 4px; }
+  button.slack-btn.muted {
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    color: var(--text-faint);
+  }
+  button.slack-btn.muted:hover {
+    border-color: var(--text-dim);
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.02);
+  }
 
   /* Roster management */
   .roster-mgmt {
@@ -660,6 +671,11 @@
       <label for="edit-custom-notes">Custom notes</label>
       <textarea id="edit-custom-notes" class="modal-notes" placeholder="Per-client notes — buy details, optimization decisions, etc."></textarea>
     </div>
+    <div class="modal-field">
+      <label for="edit-slack-url">Slack webhook URL <span style="color:var(--text-faint); font-weight:400; text-transform:none; letter-spacing:0;">(optional)</span></label>
+      <input type="text" id="edit-slack-url" placeholder="https://hooks.slack.com/services/T.../B.../...">
+      <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">Slack incoming webhook tied to this client's channel. The "Send Slack" button on this row uses it.</div>
+    </div>
     <div class="modal-actions">
       <button id="edit-cancel">Cancel</button>
       <button class="primary" id="edit-save">Save</button>
@@ -694,6 +710,10 @@
     <div class="modal-field" id="district-field" style="display:none;">
       <label for="manual-district">District (House only)</label>
       <input type="text" id="manual-district" placeholder="e.g. CA-12">
+    </div>
+    <div class="modal-field">
+      <label for="manual-slack-url">Slack webhook URL <span style="color:var(--text-faint); font-weight:400; text-transform:none; letter-spacing:0;">(optional)</span></label>
+      <input type="text" id="manual-slack-url" placeholder="https://hooks.slack.com/services/...">
     </div>
     <div class="modal-actions">
       <button id="manual-skip">Skip</button>
@@ -990,11 +1010,12 @@ async function insertCandidate(item) {
     return null;
   }
   const payload = {
-    name:     item.name,
-    state:    item.state,
-    office:   item.office,
-    district: item.district || '',
-    source:   item.source || 'manual'
+    name:              item.name,
+    state:             item.state,
+    office:            item.office,
+    district:          item.district || '',
+    source:            item.source || 'manual',
+    slack_webhook_url: item.slack_webhook_url || ''
   };
   const { data, error } = await sb.from('roster').insert(payload).select().single();
   if (error) {
@@ -1012,6 +1033,55 @@ async function deleteCandidate(id) {
     return false;
   }
   return true;
+}
+
+// =========================================================
+// Slack reminder — POST a single-client reminder to that
+// client's Slack incoming-webhook URL.
+// Form-encoded body avoids the CORS preflight that
+// Content-Type: application/json triggers.
+// =========================================================
+async function sendSlackReminder(rosterId) {
+  const row = roster.find(r => r.id === rosterId);
+  if (!row) return;
+  const url = (row.slack_webhook_url || '').trim();
+  if (!url) {
+    toast('No Slack webhook on this client — opening Edit.', 'error');
+    openEditModal(rosterId, { focusSlack: true });
+    return;
+  }
+
+  const today = todayISO();
+  const next = nextElectionInState(row.state, today);
+  if (!next) { toast('No upcoming election for this client.', 'error'); return; }
+  const days = daysUntil(next.date, today);
+  const dayLabel = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `${days} day${days === 1 ? '' : 's'} out`;
+  const electionType = next.kind === 'runoff' ? 'runoff' : 'primary';
+  const officeStr = row.office + (row.district ? ' (' + row.district + ')' : '');
+  const customNotes = (row.custom_notes || '').trim();
+
+  const lines = [
+    `🚨 *INCREASE IMPRESSIONS — ${row.name}*`,
+    ``,
+    `${row.state} ${officeStr} ${electionType}: *${fmtDateLong(next.date)}* — ${dayLabel}.`,
+    `Keep impressions ramped through to election day.`
+  ];
+  if (customNotes) lines.push('', `_Notes: ${customNotes}_`);
+  lines.push('', `<https://mawirecon.github.io/AxMedia-Primary-Tracker/|Open AxMedia Primary Tracker>`);
+  const text = lines.join('\n');
+
+  try {
+    const body = new URLSearchParams({ payload: JSON.stringify({ text }) });
+    const resp = await fetch(url, { method: 'POST', body });
+    if (resp.ok) {
+      toast(`Slack reminder sent · ${row.name}.`, 'success');
+    } else {
+      const errText = await resp.text();
+      toast(`Slack send failed (${resp.status}): ${errText.slice(0, 80)}`, 'error');
+    }
+  } catch (e) {
+    toast(`Slack send failed: ${e.message}`, 'error');
+  }
 }
 
 async function updateCandidate(id, patch) {
@@ -1289,6 +1359,13 @@ function renderRoster(today) {
           ${rows.map(r => {
             const isRunoff = r.primary.kind === 'runoff';
             const customNotes = (r.custom_notes || '').trim();
+            const isFlagged = r.days <= 11;
+            const hasWebhook = !!(r.slack_webhook_url || '').trim();
+            const slackBtn = isFlagged
+              ? (hasWebhook
+                  ? `<button class="icon-btn slack-btn primary" data-slack-id="${r.id}" title="Send Slack reminder to this client's channel">📤 Slack</button>`
+                  : `<button class="icon-btn slack-btn muted" data-slack-set-id="${r.id}" title="No Slack webhook set for this client — click to add one">Set Slack URL</button>`)
+              : '';
             return `
             <tr>
               <td class="col-tier">${tierBadgeHTML(r.days)}${isRunoff ? '<span class="badge-runoff">runoff</span>' : ''}</td>
@@ -1303,6 +1380,7 @@ function renderRoster(today) {
               </td>
               <td class="col-custom-notes ${customNotes ? '' : 'empty'}">${customNotes ? escapeHtml(customNotes) : '—'}</td>
               <td class="col-actions">
+                ${slackBtn}
                 <button class="icon-btn" data-edit-id="${r.id}">Edit</button>
                 <button class="icon-btn danger" data-remove-id="${r.id}">Remove</button>
               </td>
@@ -1316,6 +1394,12 @@ function renderRoster(today) {
     });
     wrap.querySelectorAll('[data-edit-id]').forEach(btn => {
       btn.addEventListener('click', () => openEditModal(btn.dataset.editId));
+    });
+    wrap.querySelectorAll('[data-slack-id]').forEach(btn => {
+      btn.addEventListener('click', () => sendSlackReminder(btn.dataset.slackId));
+    });
+    wrap.querySelectorAll('[data-slack-set-id]').forEach(btn => {
+      btn.addEventListener('click', () => openEditModal(btn.dataset.slackSetId, { focusSlack: true }));
     });
   }
 }
@@ -1536,6 +1620,7 @@ function showNextManual() {
   stateSel.value = '';
   document.getElementById('manual-office').value = '';
   document.getElementById('manual-district').value = '';
+  document.getElementById('manual-slack-url').value = '';
   document.getElementById('district-field').style.display = 'none';
 
   document.getElementById('manual-modal').classList.add('show');
@@ -1564,12 +1649,14 @@ document.getElementById('manual-save').addEventListener('click', async () => {
     return;
   }
   const name = manualQueueState.queue[manualQueueState.idx];
+  const slackUrl = document.getElementById('manual-slack-url').value.trim();
   const inserted = await insertCandidate({
     name,
     state,
     office,
     district: office === 'U.S. House' ? district : '',
-    source: 'manual'
+    source: 'manual',
+    slack_webhook_url: slackUrl
   });
   if (inserted) {
     await fetchRoster();
@@ -1590,7 +1677,7 @@ document.getElementById('manual-skip').addEventListener('click', () => {
 // =========================================================
 let editTargetId = null;
 
-function openEditModal(id) {
+function openEditModal(id, opts) {
   const row = roster.find(r => r.id === id);
   if (!row) return;
   editTargetId = id;
@@ -1605,8 +1692,19 @@ function openEditModal(id) {
   document.getElementById('edit-district-field').style.display =
     row.office === 'U.S. House' ? 'block' : 'none';
   document.getElementById('edit-custom-notes').value = row.custom_notes || '';
+  document.getElementById('edit-slack-url').value = row.slack_webhook_url || '';
 
   document.getElementById('edit-modal').classList.add('show');
+
+  if (opts && opts.focusSlack) {
+    setTimeout(() => {
+      const slackInput = document.getElementById('edit-slack-url');
+      if (slackInput) {
+        slackInput.focus();
+        slackInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 60);
+  }
 }
 
 document.getElementById('edit-office').addEventListener('change', (e) => {
@@ -1625,15 +1723,21 @@ document.getElementById('edit-save').addEventListener('click', async () => {
   const office = document.getElementById('edit-office').value;
   const district = document.getElementById('edit-district').value.trim();
   const customNotes = document.getElementById('edit-custom-notes').value;
+  const slackUrl = document.getElementById('edit-slack-url').value.trim();
   if (!state || !office) {
     toast('State and office are required.', 'error');
+    return;
+  }
+  if (slackUrl && !slackUrl.startsWith('https://hooks.slack.com/')) {
+    toast('Slack URL should start with https://hooks.slack.com/', 'error');
     return;
   }
   const ok = await updateCandidate(editTargetId, {
     state,
     office,
     district: office === 'U.S. House' ? district : '',
-    custom_notes: customNotes
+    custom_notes: customNotes,
+    slack_webhook_url: slackUrl
   });
   if (ok) {
     await fetchRoster();

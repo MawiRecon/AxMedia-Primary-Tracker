@@ -10,14 +10,15 @@
 
 -- Roster: clients we're tracking
 create table if not exists roster (
-  id            uuid primary key default gen_random_uuid(),
-  name          text not null,
-  state         text not null,
-  office        text not null,
-  district      text default '',
-  source        text default 'manual',  -- 'auto' (NBC match) or 'manual'
-  custom_notes  text default '',        -- per-client annotation
-  created_at    timestamptz default now()
+  id                uuid primary key default gen_random_uuid(),
+  name              text not null,
+  state             text not null,
+  office            text not null,
+  district          text default '',
+  source            text default 'manual',  -- 'auto' (NBC match) or 'manual'
+  custom_notes      text default '',        -- per-client annotation
+  slack_webhook_url text default '',        -- Slack incoming webhook for per-client reminders
+  created_at        timestamptz default now()
 );
 
 alter table roster enable row level security;
