@@ -446,85 +446,6 @@
     letter-spacing: 0.06em;
   }
 
-  /* Add-runoff form */
-  .runoff-form {
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 16px;
-  }
-  .runoff-form-grid {
-    display: grid;
-    grid-template-columns: 140px 1fr 1fr;
-    gap: 10px;
-    align-items: end;
-  }
-  .runoff-form-grid label {
-    display: block;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 6px;
-  }
-  .runoff-form input, .runoff-form select, .runoff-form textarea {
-    width: 100%;
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--border-strong);
-    border-radius: 6px;
-    padding: 8px 10px;
-    font-family: inherit;
-    font-size: 13px;
-  }
-  .runoff-form input:focus, .runoff-form select:focus, .runoff-form textarea:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-  .runoff-form textarea { min-height: 50px; resize: vertical; grid-column: 1 / -1; }
-  .runoff-form-offices {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    grid-column: 1 / -1;
-    margin-top: 4px;
-  }
-  .runoff-form-offices label {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    font-weight: 400;
-    text-transform: none;
-    letter-spacing: 0;
-    color: var(--text);
-    margin-bottom: 0;
-    cursor: pointer;
-  }
-  .runoff-form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 12px;
-  }
-  .runoff-list {
-    margin-top: 12px;
-    border-top: 1px solid var(--border);
-    padding-top: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .runoff-list-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 12px;
-    color: var(--text-dim);
-    padding: 4px 0;
-  }
-
   textarea.modal-notes {
     width: 100%;
     min-height: 60px;
@@ -599,42 +520,6 @@
     </div>
   </section>
 
-  <!-- Add runoff -->
-  <section>
-    <h2>Add Runoff <span class="count" id="runoff-count"></span></h2>
-    <div class="runoff-form">
-      <div class="runoff-form-grid">
-        <div>
-          <label for="runoff-date">Date</label>
-          <input type="date" id="runoff-date">
-        </div>
-        <div>
-          <label for="runoff-state">State</label>
-          <select id="runoff-state"></select>
-        </div>
-        <div>
-          <label for="runoff-notes-input">Notes (optional)</label>
-          <input type="text" id="runoff-notes-input" placeholder="e.g. GOP runoff if no candidate hits 50%">
-        </div>
-        <div class="runoff-form-offices" id="runoff-offices">
-          <span style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; align-self:center; margin-right:4px;">Offices:</span>
-          <label><input type="checkbox" value="Governor"> Governor</label>
-          <label><input type="checkbox" value="U.S. Senate"> U.S. Senate</label>
-          <label><input type="checkbox" value="U.S. House"> U.S. House</label>
-          <label><input type="checkbox" value="State Legislature"> State Legislature</label>
-          <label><input type="checkbox" value="Attorney General"> Attorney General</label>
-          <label><input type="checkbox" value="Secretary of State"> Secretary of State</label>
-          <label><input type="checkbox" value="Other Statewide"> Other Statewide</label>
-          <label><input type="checkbox" value="Local"> Local</label>
-        </div>
-      </div>
-      <div class="runoff-form-actions">
-        <button class="primary" id="runoff-add-btn">Add runoff</button>
-      </div>
-      <div class="runoff-list" id="runoff-list"></div>
-    </div>
-  </section>
-
   <!-- Full calendar -->
   <section>
     <h2>2026 Primary Calendar <span class="count" id="calendar-count"></span></h2>
@@ -678,6 +563,15 @@
     <div class="modal-field">
       <label for="edit-custom-notes">Custom notes</label>
       <textarea id="edit-custom-notes" class="modal-notes" placeholder="Per-client notes — buy details, optimization decisions, etc."></textarea>
+    </div>
+    <div class="modal-field">
+      <label for="edit-runoff-date">Runoff date <span style="color:var(--text-faint); font-weight:400; text-transform:none; letter-spacing:0;">(optional — overrides primary date)</span></label>
+      <input type="date" id="edit-runoff-date">
+      <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">Set this only if this candidate is in a confirmed runoff. The roster countdown will target this date instead of the primary, and only this client is affected — others in the same state still count down to the primary.</div>
+    </div>
+    <div class="modal-field">
+      <label for="edit-runoff-notes">Runoff notes <span style="color:var(--text-faint); font-weight:400; text-transform:none; letter-spacing:0;">(optional)</span></label>
+      <input type="text" id="edit-runoff-notes" placeholder="e.g. GOP runoff vs. Smith">
     </div>
     <div class="modal-field">
       <label for="edit-slack-url">Slack webhook URL <span style="color:var(--text-faint); font-weight:400; text-transform:none; letter-spacing:0;">(optional)</span></label>
@@ -1060,7 +954,7 @@ async function sendSlackReminder(rosterId) {
   }
 
   const today = todayISO();
-  const next = nextElectionInState(row.state, today);
+  const next = nextElectionForRow(row);
   if (!next) { toast('No upcoming election for this client.', 'error'); return; }
   const days = daysUntil(next.date, today);
   const text = `T-${days} ${days === 1 ? 'day' : 'days'} until voting: ⚡ ⬆️ Surge Impressions ⬆️ ⚡`;
@@ -1108,80 +1002,20 @@ async function updateCandidate(id, patch) {
   return true;
 }
 
-// =========================================================
-// Events (runoffs) — user-added calendar entries in Supabase
-// =========================================================
-let events = [];
-const EVENTS_CACHE_KEY = 'axmedia-primary-tracker.events.v1';
-
-function loadEventsCache() {
-  try { return JSON.parse(localStorage.getItem(EVENTS_CACHE_KEY)) || []; }
-  catch { return []; }
-}
-function saveEventsCache(e) {
-  try { localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(e)); } catch {}
-}
-
-async function fetchEvents() {
-  if (!sb) {
-    events = loadEventsCache();
-    return;
+// For roster: a per-client runoff_date overrides the state's primary
+// date. Other clients in the same state are unaffected.
+function nextElectionForRow(row) {
+  if (row.runoff_date) {
+    return {
+      date: row.runoff_date,
+      state: row.state,
+      notes: row.runoff_notes || '',
+      kind: 'runoff'
+    };
   }
-  try {
-    const { data, error } = await sb
-      .from('events')
-      .select('*')
-      .order('date', { ascending: true });
-    if (error) throw error;
-    events = data || [];
-    saveEventsCache(events);
-  } catch (e) {
-    console.error('fetchEvents failed:', e);
-    events = loadEventsCache();
-  }
-}
-
-async function insertEvent(payload) {
-  if (!sb) { toast('Supabase not configured.', 'error'); return null; }
-  const { data, error } = await sb.from('events').insert(payload).select().single();
-  if (error) {
-    toast('Add runoff failed: ' + error.message, 'error');
-    return null;
-  }
-  return data;
-}
-
-async function deleteEvent(id) {
-  if (!sb) return false;
-  const { error } = await sb.from('events').delete().eq('id', id);
-  if (error) {
-    toast('Remove failed: ' + error.message, 'error');
-    return false;
-  }
-  return true;
-}
-
-// Combined calendar: hardcoded primaries + user-added events.
-// Events shape matches PRIMARIES entries plus { kind, id }.
-function allCalendarEntries() {
-  const primaryEntries = PRIMARIES.map(p => ({ ...p, kind: 'primary' }));
-  const eventEntries = events.map(e => ({
-    date: e.date,
-    state: e.state,
-    offices: e.offices || [],
-    notes: e.notes || '',
-    candidates: [],
-    kind: e.kind || 'runoff',
-    id: e.id
-  }));
-  return primaryEntries.concat(eventEntries);
-}
-
-// For roster: pick the next upcoming election (primary or runoff) in a state.
-function nextElectionInState(state, todayISO) {
-  return allCalendarEntries()
-    .filter(e => e.state === state && daysUntil(e.date, todayISO) >= 0)
-    .sort((a, b) => a.date.localeCompare(b.date))[0] || null;
+  const primary = PRIMARIES.find(p => p.state === row.state);
+  if (!primary) return null;
+  return { ...primary, kind: 'primary' };
 }
 
 function subscribeRealtime() {
@@ -1191,14 +1025,6 @@ function subscribeRealtime() {
         { event: '*', schema: 'public', table: 'roster' },
         async () => {
           await fetchRoster();
-          rerender();
-        })
-    .subscribe();
-  sb.channel('events-changes')
-    .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'events' },
-        async () => {
-          await fetchEvents();
           rerender();
         })
     .subscribe();
@@ -1329,7 +1155,7 @@ function inferOfficeFromNotes(primary, candidateName) {
 // =========================================================
 function rosterRows(today) {
   return roster.map(r => {
-    const next = nextElectionInState(r.state, today);
+    const next = nextElectionForRow(r);
     if (!next) return null;
     const days = daysUntil(next.date, today);
     return { ...r, primary: next, days };
@@ -1422,7 +1248,7 @@ function renderCalendar(today) {
   const wrap = document.getElementById('calendar-table-wrap');
   const showPast = document.getElementById('show-past').checked;
 
-  let rows = allCalendarEntries().map(p => ({ ...p, days: daysUntil(p.date, today) }));
+  let rows = PRIMARIES.map(p => ({ ...p, kind: 'primary', days: daysUntil(p.date, today) }));
   if (!showPast) rows = rows.filter(r => r.days >= 0);
   rows.sort((a, b) => a.days - b.days);
 
@@ -1460,45 +1286,6 @@ function renderCalendar(today) {
       </tbody>
     </table>
   `;
-}
-
-// =========================================================
-// Render: Add-Runoff section
-// =========================================================
-function renderRunoffList(today) {
-  const wrap = document.getElementById('runoff-list');
-  const countEl = document.getElementById('runoff-count');
-  if (!wrap) return;
-  if (events.length === 0) {
-    wrap.innerHTML = `<div style="color:var(--text-faint); font-size:12px; font-style:italic;">No runoffs added yet.</div>`;
-    countEl.textContent = '';
-    return;
-  }
-  const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date));
-  countEl.textContent = `· ${events.length}`;
-  wrap.innerHTML = sorted.map(e => {
-    const days = daysUntil(e.date, today);
-    const dateLabel = days >= 0
-      ? `${fmtDate(e.date)} · ${days === 0 ? 'today' : days === 1 ? 'tomorrow' : days + 'd out'}`
-      : `${fmtDate(e.date)} · past`;
-    const officeStr = (e.offices || []).join(' · ') || 'unspecified';
-    return `
-      <div class="runoff-list-item">
-        <span><strong style="color:var(--text);">${escapeHtml(e.state)}</strong> · ${escapeHtml(officeStr)} · ${dateLabel}${e.notes ? ' · ' + escapeHtml(e.notes) : ''}</span>
-        <button class="icon-btn danger" data-remove-event-id="${e.id}">Remove</button>
-      </div>
-    `;
-  }).join('');
-  wrap.querySelectorAll('[data-remove-event-id]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const ok = await deleteEvent(btn.dataset.removeEventId);
-      if (ok) {
-        await fetchEvents();
-        rerender();
-        toast('Runoff removed.', 'success');
-      }
-    });
-  });
 }
 
 // =========================================================
@@ -1703,6 +1490,8 @@ function openEditModal(id, opts) {
   document.getElementById('edit-district-field').style.display =
     row.office === 'U.S. House' ? 'block' : 'none';
   document.getElementById('edit-custom-notes').value = row.custom_notes || '';
+  document.getElementById('edit-runoff-date').value = row.runoff_date || '';
+  document.getElementById('edit-runoff-notes').value = row.runoff_notes || '';
   document.getElementById('edit-slack-url').value = row.slack_webhook_url || '';
 
   document.getElementById('edit-modal').classList.add('show');
@@ -1734,6 +1523,8 @@ document.getElementById('edit-save').addEventListener('click', async () => {
   const office = document.getElementById('edit-office').value;
   const district = document.getElementById('edit-district').value.trim();
   const customNotes = document.getElementById('edit-custom-notes').value;
+  const runoffDate = document.getElementById('edit-runoff-date').value;
+  const runoffNotes = document.getElementById('edit-runoff-notes').value.trim();
   const slackUrl = document.getElementById('edit-slack-url').value.trim();
   if (!state || !office) {
     toast('State and office are required.', 'error');
@@ -1748,6 +1539,8 @@ document.getElementById('edit-save').addEventListener('click', async () => {
     office,
     district: office === 'U.S. House' ? district : '',
     custom_notes: customNotes,
+    runoff_date: runoffDate || null,
+    runoff_notes: runoffNotes,
     slack_webhook_url: slackUrl
   });
   if (ok) {
@@ -1759,45 +1552,6 @@ document.getElementById('edit-save').addEventListener('click', async () => {
   }
 });
 
-// =========================================================
-// Runoff form
-// =========================================================
-function populateRunoffStateDropdown() {
-  // States that have at least one entry on the calendar (covers all 47 states with 2026 primaries)
-  const sel = document.getElementById('runoff-state');
-  if (!sel) return;
-  const current = sel.value;
-  sel.innerHTML = `<option value="">— select state —</option>` +
-    ALL_STATES.map(s => `<option value="${s}">${s}</option>`).join('');
-  if (current) sel.value = current;
-}
-
-document.getElementById('runoff-add-btn').addEventListener('click', async () => {
-  const date = document.getElementById('runoff-date').value;
-  const state = document.getElementById('runoff-state').value;
-  const notesInput = document.getElementById('runoff-notes-input').value.trim();
-  const offices = [...document.querySelectorAll('#runoff-offices input[type="checkbox"]:checked')]
-    .map(cb => cb.value);
-  if (!date) { toast('Pick a runoff date.', 'error'); return; }
-  if (!state) { toast('Pick a state.', 'error'); return; }
-  if (offices.length === 0) { toast('Pick at least one office.', 'error'); return; }
-  const inserted = await insertEvent({
-    date,
-    state,
-    offices,
-    notes: notesInput,
-    kind: 'runoff'
-  });
-  if (inserted) {
-    document.getElementById('runoff-date').value = '';
-    document.getElementById('runoff-state').value = '';
-    document.getElementById('runoff-notes-input').value = '';
-    document.querySelectorAll('#runoff-offices input[type="checkbox"]:checked').forEach(cb => cb.checked = false);
-    await fetchEvents();
-    rerender();
-    toast(`Runoff added · ${state} · ${fmtDate(date)}.`, 'success');
-  }
-});
 
 // =========================================================
 // Utilities
@@ -1829,7 +1583,6 @@ function rerender() {
   renderImpressionsAlert(today);
   renderRoster(today);
   renderCalendar(today);
-  renderRunoffList(today);
   updateSyncStatus();
 }
 
@@ -1844,12 +1597,10 @@ document.getElementById('show-past').addEventListener('change', () => rerender()
 (async function startup() {
   // Render immediately with cached data so the page isn't blank
   roster = loadCache();
-  events = loadEventsCache();
-  populateRunoffStateDropdown();
   rerender();
   // Then connect to Supabase
   if (initSupabase()) {
-    await Promise.all([fetchRoster(), fetchEvents()]);
+    await fetchRoster();
     rerender();
     subscribeRealtime();
   } else {

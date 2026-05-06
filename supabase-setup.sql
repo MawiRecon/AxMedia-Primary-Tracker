@@ -18,6 +18,8 @@ create table if not exists roster (
   source            text default 'manual',  -- 'auto' (NBC match) or 'manual'
   custom_notes      text default '',        -- per-client annotation
   slack_webhook_url text default '',        -- Slack incoming webhook for per-client reminders
+  runoff_date       date,                   -- per-client runoff override (replaces primary date when set)
+  runoff_notes      text default '',
   created_at        timestamptz default now()
 );
 

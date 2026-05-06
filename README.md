@@ -15,6 +15,7 @@ Hosted via GitHub Pages. Open `index.html` directly for solo offline use, or vis
 ├── supabase-setup.sql                  # canonical fresh-install schema
 ├── migration-001-edits-and-runoffs.sql # upgrade for an existing v1 project
 ├── migration-002-slack-webhook.sql     # adds per-client Slack webhook column
+├── migration-003-per-client-runoffs.sql # moves runoffs to per-client roster columns
 ├── data/
 │   └── roster.json                     # legacy seed file — no longer the source of truth
 └── README.md
@@ -58,10 +59,9 @@ The webhook URL is stored on the client's roster row in Supabase (column `slack_
 
 ## Runoffs
 
-Runoffs are user-added events. When a state confirms a runoff (e.g. Texas's late-May runoff after no candidate clears 50%), use the **Add Runoff** form to enter the date, state, offices, and optional notes. Runoffs:
-- Appear in the full calendar table with a `runoff` badge.
-- Replace the original primary as the countdown target on roster rows once the primary has passed.
-- Fire the same 11-day INCREASE IMPRESSIONS alert as primaries.
+Runoffs are tracked **per client**. When a candidate is confirmed to be in a runoff, click **Edit** on that client's roster row and set the **Runoff date** field. While set, that client's countdown targets the runoff date instead of the state's primary date — and only that client is affected. Other clients in the same state continue counting down to the primary.
+
+Clear the Runoff date to revert to the primary countdown.
 
 ## How the shared roster works
 
@@ -87,8 +87,9 @@ The status line under the action buttons shows connection state:
 
 Run the contents of any `migration-*.sql` files you haven't applied yet, in order, in the Supabase SQL Editor. All migrations are idempotent — safe to run more than once.
 
-- `migration-001-edits-and-runoffs.sql` — adds Custom Notes, the events table, and the roster UPDATE policy
+- `migration-001-edits-and-runoffs.sql` — adds Custom Notes, the events table (no longer used by the page after migration 003), and the roster UPDATE policy
 - `migration-002-slack-webhook.sql` — adds the per-client Slack webhook column
+- `migration-003-per-client-runoffs.sql` — moves runoffs to per-client roster columns (replaces the state-wide events approach)
 
 ### 2. Configure the page
 
