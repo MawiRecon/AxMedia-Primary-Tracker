@@ -10,11 +10,12 @@ Hosted via GitHub Pages. Open `index.html` directly for solo offline use, or vis
 
 ```
 .
-├── index.html             # the entire app (HTML + CSS + JS in one file)
-├── config.js              # Supabase URL + anon key (commit this)
-├── supabase-setup.sql     # one-time schema setup, run in Supabase SQL Editor
+├── index.html                          # the entire app (HTML + CSS + JS in one file)
+├── config.js                           # Supabase URL + anon key (commit this)
+├── supabase-setup.sql                  # canonical fresh-install schema
+├── migration-001-edits-and-runoffs.sql # upgrade for an existing v1 project
 ├── data/
-│   └── roster.json        # legacy seed file — no longer the source of truth
+│   └── roster.json                     # legacy seed file — no longer the source of truth
 └── README.md
 ```
 
@@ -30,9 +31,26 @@ Hosted via GitHub Pages. Open `index.html` directly for solo offline use, or vis
 
 The 11-day flag is the "ramp impressions for final stretch" trigger and lights up the top alert bar whenever a client primary lands on that window.
 
+## Roster columns
+
+Each row on the client roster panel shows:
+- **Tier** — urgency badge based on days-until the next upcoming election in the state (primary or confirmed runoff). Roster rows tagged with a small `runoff` badge when the next election is a runoff.
+- **Date / Day** — the next election date for that state.
+- **Candidate** — the name (with `auto`/`manual` source tag).
+- **Race** — `{State} · {Office} [· {District}]`. Editable via the Edit button.
+- **NBC Race Notes** — condensed reference text from the curated NBC calendar (truncated to 2 lines, full text on hover). Read-only.
+- **Custom Notes** — per-client annotation. Editable via the Edit button; useful for buy details, optimization decisions, internal context.
+
+## Runoffs
+
+Runoffs are user-added events. When a state confirms a runoff (e.g. Texas's late-May runoff after no candidate clears 50%), use the **Add Runoff** form to enter the date, state, offices, and optional notes. Runoffs:
+- Appear in the full calendar table with a `runoff` badge.
+- Replace the original primary as the countdown target on roster rows once the primary has passed.
+- Fire the same 11-day INCREASE IMPRESSIONS alert as primaries.
+
 ## How the shared roster works
 
-The roster lives in a `roster` table in Supabase. The page connects on load, fetches the current roster, and subscribes to realtime changes. When anyone adds or removes a candidate, every other open browser updates within a second or two.
+The roster lives in a `roster` table in Supabase. The page connects on load, fetches the current roster, and subscribes to realtime changes. When anyone adds, removes, or edits a candidate, every other open browser updates within a second or two. Runoffs in the `events` table sync the same way.
 
 If the browser can't reach Supabase (offline, project paused, etc.), the page falls back to a localStorage cache so it still renders something useful. Adds/removes are blocked until the connection returns.
 
@@ -49,6 +67,10 @@ The status line under the action buttons shows connection state:
 3. Once provisioned, open **SQL Editor** → **New query**
 4. Paste the contents of `supabase-setup.sql` and run it
 5. Open **Settings → API**, copy the **Project URL** and **anon / public key**
+
+### Upgrading an existing project
+
+If your Supabase project was set up with the original v1 schema (no `custom_notes` column, no `events` table), run the contents of `migration-001-edits-and-runoffs.sql` in the SQL Editor. The migration is idempotent — safe to run more than once.
 
 ### 2. Configure the page
 
