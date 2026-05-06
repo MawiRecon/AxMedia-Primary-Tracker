@@ -1051,24 +1051,7 @@ async function sendSlackReminder(rosterId) {
     return;
   }
 
-  const today = todayISO();
-  const next = nextElectionInState(row.state, today);
-  if (!next) { toast('No upcoming election for this client.', 'error'); return; }
-  const days = daysUntil(next.date, today);
-  const dayLabel = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `${days} day${days === 1 ? '' : 's'} out`;
-  const electionType = next.kind === 'runoff' ? 'runoff' : 'primary';
-  const officeStr = row.office + (row.district ? ' (' + row.district + ')' : '');
-  const customNotes = (row.custom_notes || '').trim();
-
-  const lines = [
-    `🚨 *INCREASE IMPRESSIONS — ${row.name}*`,
-    ``,
-    `${row.state} ${officeStr} ${electionType}: *${fmtDateLong(next.date)}* — ${dayLabel}.`,
-    `Keep impressions ramped through to election day.`
-  ];
-  if (customNotes) lines.push('', `_Notes: ${customNotes}_`);
-  lines.push('', `<https://mawirecon.github.io/AxMedia-Primary-Tracker/|Open AxMedia Primary Tracker>`);
-  const text = lines.join('\n');
+  const text = 'T-11 days until voting - Surge Impressions';
 
   try {
     const body = new URLSearchParams({ payload: JSON.stringify({ text }) });
