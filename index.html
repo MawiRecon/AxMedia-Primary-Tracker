@@ -264,6 +264,14 @@
     color: var(--text-dim);
     background: rgba(255,255,255,0.02);
   }
+  button.slack-btn.sent {
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
+    cursor: default;
+    transition: background 0.18s, border-color 0.18s, color 0.18s;
+  }
+  button.slack-btn.sent:hover { background: var(--green); }
 
   /* Roster management */
   .roster-mgmt {
@@ -1055,13 +1063,14 @@ async function sendSlackReminder(rosterId) {
   const next = nextElectionInState(row.state, today);
   if (!next) { toast('No upcoming election for this client.', 'error'); return; }
   const days = daysUntil(next.date, today);
-  const text = `T-${days} ${days === 1 ? 'day' : 'days'} until voting - Surge Impressions`;
+  const text = `T-${days} ${days === 1 ? 'day' : 'days'} until voting: ⚡ ⬆️ Surge Impressions ⬆️ ⚡`;
 
   try {
     const body = new URLSearchParams({ payload: JSON.stringify({ text }) });
     const resp = await fetch(url, { method: 'POST', body });
     if (resp.ok) {
       toast(`Slack reminder sent · ${row.name}.`, 'success');
+      flashSlackButtonSent(rosterId);
     } else {
       const errText = await resp.text();
       toast(`Slack send failed (${resp.status}): ${errText.slice(0, 80)}`, 'error');
@@ -1069,6 +1078,21 @@ async function sendSlackReminder(rosterId) {
   } catch (e) {
     toast(`Slack send failed: ${e.message}`, 'error');
   }
+}
+
+function flashSlackButtonSent(rosterId) {
+  const btn = document.querySelector(`button[data-slack-id="${rosterId}"]`);
+  if (!btn) return;
+  const originalHTML = btn.innerHTML;
+  btn.innerHTML = '✓ Sent';
+  btn.classList.add('sent');
+  btn.disabled = true;
+  setTimeout(() => {
+    if (!btn.isConnected) return;
+    btn.innerHTML = originalHTML;
+    btn.classList.remove('sent');
+    btn.disabled = false;
+  }, 2500);
 }
 
 async function updateCandidate(id, patch) {
