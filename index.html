@@ -460,6 +460,37 @@
   }
   textarea.modal-notes:focus { outline: none; border-color: var(--accent); }
 
+  /* Collapsible section (used for the bottom calendar) */
+  details summary.section-summary {
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.005em;
+    padding: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  details summary.section-summary::-webkit-details-marker { display: none; }
+  details summary.section-summary::marker { display: none; }
+  details summary.section-summary .count {
+    color: var(--text-faint);
+    font-weight: 400;
+    font-size: 13px;
+    margin-left: 6px;
+  }
+  details .disclosure-arrow {
+    display: inline-block;
+    transition: transform 0.18s ease;
+    color: var(--text-dim);
+    font-size: 11px;
+    width: 12px;
+  }
+  details[open] .disclosure-arrow { transform: rotate(90deg); }
+
   /* Tier legend */
   .legend {
     display: flex;
@@ -510,6 +541,11 @@
   <!-- Client roster panel -->
   <section id="roster-section">
     <h2>Client Roster — Upcoming Primaries <span class="count" id="roster-count"></span></h2>
+    <div class="filter-row">
+      <label>
+        <input type="checkbox" id="show-past-roster"> Show past primaries
+      </label>
+    </div>
     <div id="roster-table-wrap"></div>
     <div class="legend">
       <div class="item"><span class="badge badge-flash">≤11d</span> Increase impressions</div>
@@ -522,13 +558,18 @@
 
   <!-- Full calendar -->
   <section>
-    <h2>2026 Primary Calendar <span class="count" id="calendar-count"></span></h2>
-    <div class="filter-row">
-      <label>
-        <input type="checkbox" id="show-past"> Show past primaries
-      </label>
-    </div>
-    <div id="calendar-table-wrap"></div>
+    <details id="calendar-details">
+      <summary class="section-summary">
+        <span class="disclosure-arrow">▶</span>
+        2026 Primary Calendar <span class="count" id="calendar-count"></span>
+      </summary>
+      <div class="filter-row" style="margin-top:12px;">
+        <label>
+          <input type="checkbox" id="show-past"> Show past primaries
+        </label>
+      </div>
+      <div id="calendar-table-wrap"></div>
+    </details>
   </section>
 
 </div>
@@ -1154,13 +1195,14 @@ function inferOfficeFromNotes(primary, candidateName) {
 // Render: Roster panel
 // =========================================================
 function rosterRows(today) {
+  const showPast = document.getElementById('show-past-roster')?.checked || false;
   return roster.map(r => {
     const next = nextElectionForRow(r);
     if (!next) return null;
     const days = daysUntil(next.date, today);
     return { ...r, primary: next, days };
   })
-  .filter(r => r !== null && r.days >= 0)
+  .filter(r => r !== null && (showPast || r.days >= 0))
   .sort((a, b) => a.days - b.days);
 }
 
@@ -1176,7 +1218,7 @@ function renderRoster(today) {
     </div>`;
   } else if (rows.length === 0) {
     wrap.innerHTML = `<div class="empty-state">
-      All client primaries are in the past. Add new candidates or check the full calendar below.
+      All client primaries are in the past — toggle <em>Show past primaries</em> above to see them, or add new candidates.
     </div>`;
   } else {
     wrap.innerHTML = `
@@ -1196,7 +1238,7 @@ function renderRoster(today) {
           ${rows.map(r => {
             const isRunoff = r.primary.kind === 'runoff';
             const customNotes = (r.custom_notes || '').trim();
-            const isFlagged = r.days <= 11;
+            const isFlagged = r.days >= 0 && r.days <= 11;
             const hasWebhook = !!(r.slack_webhook_url || '').trim();
             const slackBtn = isFlagged
               ? (hasWebhook
@@ -1593,6 +1635,7 @@ document.getElementById('roster-input').addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') addCandidatesFromInput();
 });
 document.getElementById('show-past').addEventListener('change', () => rerender());
+document.getElementById('show-past-roster').addEventListener('change', () => rerender());
 
 (async function startup() {
   // Render immediately with cached data so the page isn't blank
