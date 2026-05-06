@@ -444,9 +444,9 @@
     <div class="legend">
       <div class="item"><span class="badge badge-flash">11d</span> Increase impressions</div>
       <div class="item"><span class="badge badge-urgent">≤14d</span> Urgent · GOTV</div>
-      <div class="item"><span class="badge badge-final">15–30d</span> Final flight</div>
-      <div class="item"><span class="badge badge-planning">31–60d</span> Planning</div>
-      <div class="item"><span class="badge badge-future">60d+</span> Future</div>
+      <div class="item"><span class="badge badge-final">15–30d</span> Gain Steam</div>
+      <div class="item"><span class="badge badge-planning">31–60d</span> Saturation</div>
+      <div class="item"><span class="badge badge-future">60d+</span> Awareness</div>
     </div>
   </section>
 
@@ -911,9 +911,9 @@ function tierFor(daysOut) {
   if (daysOut < 0) return { key: 'past', label: 'Past', cls: 'badge-past' };
   if (daysOut === 11) return { key: 'flash', label: '🚨 INCREASE IMPRESSIONS', cls: 'badge-flash' };
   if (daysOut <= 14) return { key: 'urgent', label: '🔴 Urgent · GOTV', cls: 'badge-urgent' };
-  if (daysOut <= 30) return { key: 'final', label: '🟠 Final flight', cls: 'badge-final' };
-  if (daysOut <= 60) return { key: 'planning', label: '🟡 Planning', cls: 'badge-planning' };
-  return { key: 'future', label: '⚪ Future', cls: 'badge-future' };
+  if (daysOut <= 30) return { key: 'final', label: '🟠 Gain Steam', cls: 'badge-final' };
+  if (daysOut <= 60) return { key: 'planning', label: '🟡 Saturation', cls: 'badge-planning' };
+  return { key: 'future', label: '⚪ Awareness', cls: 'badge-future' };
 }
 function tierBadgeHTML(daysOut) {
   const t = tierFor(daysOut);

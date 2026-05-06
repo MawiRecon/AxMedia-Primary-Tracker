@@ -24,9 +24,9 @@ Hosted via GitHub Pages. Open `index.html` directly for solo offline use, or vis
 |------|--------|-----------|
 | INCREASE IMPRESSIONS | exactly 11 days out | Red flashing alert at top — action prompt, not a status |
 | Urgent · GOTV | ≤14 days | Red badge |
-| Final flight | 15–30 days | Orange badge |
-| Planning | 31–60 days | Yellow badge |
-| Future | 60+ days | Neutral badge |
+| Gain Steam | 15–30 days | Orange badge |
+| Saturation | 31–60 days | Yellow badge |
+| Awareness | 60+ days | Neutral badge |
 
 The 11-day flag is the "ramp impressions for final stretch" trigger and lights up the top alert bar whenever a client primary lands on that window.
 
