@@ -1,0 +1,30 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node (if a build step is ever added)
+node_modules/
+npm-debug.log*
+
+# Logs
+*.log
+
+# Local backup snapshots downloaded from the Backup JSON button
+roster-backup-*.json
+!data/roster.json
+
+# Claude Code local state (project-level config like .mcp.json IS committed)
+.claude/settings.local.json
+.claude/skills/
+.claude/worktrees/
+
+# Installed agent skills — reinstallable via `npx skills add` using skills-lock.json
+.agents/
