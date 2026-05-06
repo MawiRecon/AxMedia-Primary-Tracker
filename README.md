@@ -23,13 +23,13 @@ Hosted via GitHub Pages. Open `index.html` directly for solo offline use, or vis
 
 | Tier | Window | Treatment |
 |------|--------|-----------|
-| INCREASE IMPRESSIONS | exactly 11 days out | Red flashing alert at top — action prompt, not a status |
-| Urgent · GOTV | ≤14 days | Red badge |
+| INCREASE IMPRESSIONS | ≤11 days | Red flashing badge + top-of-page alert listing every client in the ramp window |
+| Urgent · GOTV | 12–14 days | Red badge |
 | Gain Steam | 15–30 days | Orange badge |
 | Saturation | 31–60 days | Yellow badge |
 | Awareness | 60+ days | Neutral badge |
 
-The 11-day flag is the "ramp impressions for final stretch" trigger and lights up the top alert bar whenever a client primary lands on that window.
+The INCREASE IMPRESSIONS window covers the entire 11-days-or-fewer stretch — once a client's election crosses that threshold, the badge stays flashing and the top-of-page alert keeps listing them through to election day.
 
 ## Roster columns
 
@@ -38,8 +38,7 @@ Each row on the client roster panel shows:
 - **Date / Day** — the next election date for that state.
 - **Candidate** — the name (with `auto`/`manual` source tag).
 - **Race** — `{State} · {Office} [· {District}]`. Editable via the Edit button.
-- **NBC Race Notes** — condensed reference text from the curated NBC calendar (truncated to 2 lines, full text on hover). Read-only.
-- **Custom Notes** — per-client annotation. Editable via the Edit button; useful for buy details, optimization decisions, internal context.
+- **Custom Notes** — per-client annotation. Editable via the Edit button; useful for buy details, optimization decisions, internal context. (The full NBC race notes still appear in the bottom Calendar table.)
 
 ## Runoffs
 

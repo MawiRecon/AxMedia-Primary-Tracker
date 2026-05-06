@@ -404,18 +404,6 @@
     margin-bottom: 12px;
   }
 
-  /* NBC race notes — condensed in the roster panel */
-  td.col-nbc-notes {
-    color: var(--text-dim);
-    font-size: 11.5px;
-    line-height: 1.4;
-    max-width: 260px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
   td.col-custom-notes {
     color: var(--text);
     font-size: 12px;
@@ -570,8 +558,8 @@
     <h2>Client Roster — Upcoming Primaries <span class="count" id="roster-count"></span></h2>
     <div id="roster-table-wrap"></div>
     <div class="legend">
-      <div class="item"><span class="badge badge-flash">11d</span> Increase impressions</div>
-      <div class="item"><span class="badge badge-urgent">≤14d</span> Urgent · GOTV</div>
+      <div class="item"><span class="badge badge-flash">≤11d</span> Increase impressions</div>
+      <div class="item"><span class="badge badge-urgent">12–14d</span> Urgent · GOTV</div>
       <div class="item"><span class="badge badge-final">15–30d</span> Gain Steam</div>
       <div class="item"><span class="badge badge-planning">31–60d</span> Saturation</div>
       <div class="item"><span class="badge badge-future">60d+</span> Awareness</div>
@@ -1212,7 +1200,7 @@ function fmtDateLong(iso) {
 // =========================================================
 function tierFor(daysOut) {
   if (daysOut < 0) return { key: 'past', label: 'Past', cls: 'badge-past' };
-  if (daysOut === 11) return { key: 'flash', label: '🚨 INCREASE IMPRESSIONS', cls: 'badge-flash' };
+  if (daysOut <= 11) return { key: 'flash', label: '🚨 INCREASE IMPRESSIONS', cls: 'badge-flash' };
   if (daysOut <= 14) return { key: 'urgent', label: '🔴 Urgent · GOTV', cls: 'badge-urgent' };
   if (daysOut <= 30) return { key: 'final', label: '🟠 Gain Steam', cls: 'badge-final' };
   if (daysOut <= 60) return { key: 'planning', label: '🟡 Saturation', cls: 'badge-planning' };
@@ -1293,7 +1281,6 @@ function renderRoster(today) {
             <th>Day</th>
             <th>Candidate</th>
             <th>Race</th>
-            <th>NBC Race Notes</th>
             <th>Custom Notes</th>
             <th></th>
           </tr>
@@ -1314,7 +1301,6 @@ function renderRoster(today) {
               <td>
                 <div>${escapeHtml(r.state)} · ${escapeHtml(r.office)}${r.district ? ' · ' + escapeHtml(r.district) : ''}</div>
               </td>
-              <td class="col-nbc-notes" title="${escapeHtml(r.primary.notes || '')}">${escapeHtml(r.primary.notes || '')}</td>
               <td class="col-custom-notes ${customNotes ? '' : 'empty'}">${customNotes ? escapeHtml(customNotes) : '—'}</td>
               <td class="col-actions">
                 <button class="icon-btn" data-edit-id="${r.id}">Edit</button>
@@ -1426,18 +1412,19 @@ function renderRunoffList(today) {
 function renderImpressionsAlert(today) {
   const alert = document.getElementById('impressions-alert');
   const body = document.getElementById('impressions-alert-body');
-  const flagged = rosterRows(today).filter(r => r.days === 11);
+  const flagged = rosterRows(today).filter(r => r.days >= 0 && r.days <= 11);
   if (flagged.length === 0) {
     alert.classList.remove('show');
     return;
   }
   alert.classList.add('show');
   body.innerHTML = `
-    <strong>Increase impressions today.</strong> The following client primaries hit 11 days out — final flight optimization window starts now.
+    <strong>Increase impressions.</strong> The following client races are within 11 days of election day — keep impressions ramped through to election day.
     <ul>
-      ${flagged.map(r => `
-        <li><span class="candidate-name">${escapeHtml(r.name)}</span> · ${escapeHtml(r.state)} ${escapeHtml(r.office)} · ${fmtDate(r.primary.date)}</li>
-      `).join('')}
+      ${flagged.map(r => {
+        const label = r.days === 0 ? 'today' : r.days === 1 ? 'tomorrow' : `${r.days}d out`;
+        return `<li><span class="candidate-name">${escapeHtml(r.name)}</span> · ${escapeHtml(r.state)} ${escapeHtml(r.office)} · ${fmtDate(r.primary.date)} · ${label}</li>`;
+      }).join('')}
     </ul>
   `;
 }
