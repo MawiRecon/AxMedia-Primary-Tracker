@@ -1051,7 +1051,11 @@ async function sendSlackReminder(rosterId) {
     return;
   }
 
-  const text = 'T-11 days until voting - Surge Impressions';
+  const today = todayISO();
+  const next = nextElectionInState(row.state, today);
+  if (!next) { toast('No upcoming election for this client.', 'error'); return; }
+  const days = daysUntil(next.date, today);
+  const text = `T-${days} ${days === 1 ? 'day' : 'days'} until voting - Surge Impressions`;
 
   try {
     const body = new URLSearchParams({ payload: JSON.stringify({ text }) });
